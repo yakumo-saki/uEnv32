@@ -14,6 +14,14 @@ for file in `\find . -maxdepth 1 -type f`; do
 		echo Skipping $file
 		continue
 	fi
+	if [ $file = "./LICENCE" ]; then
+		echo Skipping $file
+		continue
+	fi
+	if [ $file = "./README.md" ]; then
+		echo Skipping $file
+		continue
+	fi
 
 	echo $file
 	ampy --port ${COMPORT} --baud ${BAUD} put $file
