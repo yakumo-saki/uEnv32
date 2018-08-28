@@ -7,3 +7,8 @@ These files are not my creation. see url for license.
 
 * bme280.py from https://github.com/catdog2/mpy_bme280_esp8266
 * ssd1306.py from https://github.com/micropython/micropython/blob/master/drivers/display/ssd1306.py
+
+# usage
+
+Edit secret.py (SSID , PASSWORD) and transfer all files to micropython board. then reset.
+
