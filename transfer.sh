@@ -3,22 +3,28 @@
 COMPORT=/dev/tty.SLAB_USBtoUART
 BAUD=115200
 
+function isSkipfile () {
+	if [ $file = "./.DS_Store" ]; then
+		echo true
+	elif [ $file = "./transfer.sh" ]; then
+		echo true
+	elif [ $file = "./LICENSE" ]; then
+		echo true
+	elif [ $file = "./README.md" ]; then
+		echo true
+	elif [ $file = "./.editorconfig" ]; then
+		echo true
+	elif [ $file = "./.gitignore" ]; then
+		echo true
+    else
+        echo false
+	fi
+}
+
 #ls -1 | xargs -I REPLACE export FILE=REPLACE; echo $FILE; ampy --port ${COMPORT} --baud ${BAUD} put $FILE
 
 for file in `\find . -maxdepth 1 -type f`; do
-	if [ $file = "./.DS_Store" ]; then
-		echo Skipping $file
-		continue
-	fi
-	if [ $file = "./transfer.sh" ]; then
-		echo Skipping $file
-		continue
-	fi
-	if [ $file = "./LICENCE" ]; then
-		echo Skipping $file
-		continue
-	fi
-	if [ $file = "./README.md" ]; then
+	if [ `isSkipfile $file` = "true" ]; then
 		echo Skipping $file
 		continue
 	fi
