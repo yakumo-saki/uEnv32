@@ -5,10 +5,12 @@ import i2cscan
 import ssd1306_i2c
 import wifi
 
+VERSION = 1.1
+
 def display(data, indicator):
     # 16col * 6rows + 4dot
     oled.fb.fill(0)
-    oled.fb.text("uEnv ver.1.00  " + indicator, 0, 0, 0xffff)
+    oled.fb.text("uEnv ver.{:.2f}  {}".format(VERSION, indicator), 0, 0, 0xffff)
     oled.fb.text("{:>16}".format(ipconfig[0]) , 0, 10, 0xffff)
     oled.fb.text("{:>16}".format("mdnsname") , 0, 20, 0xffff)
     oled.fb.text("{:.2f} c".format(data["temp"]) , 0, 34, 0xffff)
@@ -42,9 +44,9 @@ if __name__ == '__main__':
     i2cscan.scan(i2c)
 
     ipconfig = wifi.connect()
-    print(ipconfig)
+    # print(ipconfig)
 
-    indicators = ["|", "/", "-", "\\"]
+    INDICATORS = ["|", "/", "-", "\\"]
     indicator_idx = 0
 
     # i2c bus addr = AE-BME280 => 0x76(default)
@@ -57,9 +59,9 @@ if __name__ == '__main__':
     while True:
         time.sleep_ms(1000)
         data = readdata(bme)
-        display(data, indicators[indicator_idx])
+        display(data, INDICATORS[indicator_idx])
         indicator_idx = indicator_idx + 1
-        if (indicator_idx >= len(indicators)):
+        if (indicator_idx >= len(INDICATORS)):
             indicator_idx = 0
 
 

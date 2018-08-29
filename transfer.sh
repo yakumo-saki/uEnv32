@@ -2,6 +2,7 @@
 
 COMPORT=/dev/tty.SLAB_USBtoUART
 BAUD=115200
+AMPY="ampy --port ${COMPORT} --baud ${BAUD}"
 
 function isSkipfile () {
 	if [ $file = "./.DS_Store" ]; then
@@ -15,6 +16,8 @@ function isSkipfile () {
 	elif [ $file = "./.editorconfig" ]; then
 		echo true
 	elif [ $file = "./.gitignore" ]; then
+		echo true
+	elif [ $file = "./delete_all.sh" ]; then
 		echo true
     else
         echo false
@@ -30,8 +33,8 @@ for file in `\find . -maxdepth 1 -type f`; do
 	fi
 
 	echo $file
-	ampy --port ${COMPORT} --baud ${BAUD} put $file
+	${AMPY} put $file
 done
 
 echo Resetting board
-ampy --port ${COMPORT} --baud ${BAUD} reset
+${AMPY} reset

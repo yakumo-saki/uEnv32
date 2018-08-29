@@ -16,4 +16,5 @@ These files are not my creation. see url for license.
 
 Edit secret.py (SSID , PASSWORD) and transfer all files to micropython board. then reset.
 
-If `ampy` is installed, you can use transfer.sh for transfer.
+If `ampy` is installed, you can use transfer.sh for file transfer.
+`delete_all.sh` can delete all files on your micropython board.
