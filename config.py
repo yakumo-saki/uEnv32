@@ -1,0 +1,1 @@
+ntp_host = "ntp.nict.jp"
