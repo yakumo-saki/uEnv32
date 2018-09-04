@@ -1,5 +1,4 @@
 import machine
-import bme280
 import time
 import i2cscan
 import ssd1306_i2c
@@ -7,7 +6,8 @@ import wifi
 import ntpdate
 import socket
 import errno
-import ujson
+import bme280
+import tsl2561
 
 VERSION = 1.3
 
@@ -15,11 +15,11 @@ def display(data, indicator):
     # 16col * 6rows + 4dot
     oled.fb.fill(0)
     oled.fb.text("uEnv ver.{:.2f}  {}".format(VERSION, indicator), 0, 0, 0xffff)
-    oled.fb.text("{:<16}".format(getNowTimeString()) , 0, 10, 0xffff)
+    oled.fb.text("{:>16}".format(getNowTimeString()) , 0, 10, 0xffff)
     oled.fb.text("{:>16}".format(ipconfig[0]) , 0, 20, 0xffff)
-    oled.fb.text("{:.2f} c".format(data["temp"]) , 0, 34, 0xffff)
-    oled.fb.text("{:.2f} %".format(data["humi"]) , 0, 44, 0xffff)
-    oled.fb.text("{:.2f} hPa".format(data["baro"]) , 0, 54, 0xffff)
+    oled.fb.text("{:.2f} c".format(data["temperature"]) , 0, 34, 0xffff)
+    oled.fb.text("{:.2f} %".format(data["humidity"]) , 0, 44, 0xffff)
+    oled.fb.text("{:.2f} hPa".format(data["pressure"]) , 0, 54, 0xffff)
     oled.flip(1)
     oled.mirror(1)
     oled.update()
@@ -43,7 +43,7 @@ def getNowTimeString():
     ret = "{:02d}/{:02d} {:02d}:{:02d}:{:02d}".format(tm[1], tm[2], tm[3] + 9, tm[4],tm[5])
     return ret
 
-def readdata(bme):
+def readdata_bme(bme):
     t, p, h = bme.read_compensated_data()
 
     p = p // 256
@@ -54,19 +54,34 @@ def readdata(bme):
     hd = h * 100 // 1024 - hi * 100
 
     ret = {}
-    ret["temp"] = t / 100
-    ret["baro"] = float("{}.{:02d}".format(pi, pd) )
-    ret["humi"] = float("{}.{:02d}".format(hi, hd) )
+    ret["temperature"] = t / 100
+    ret["pressure"] = float("{}.{:02d}".format(pi, pd) )
+    ret["humidity"] = float("{}.{:02d}".format(hi, hd) )
     # print(ret)
     return ret
 
+def readdata_tsl(tsl):
+    try:
+        return tsl.read(True)   # Auto-Gain enable
+    except ValueError as ve:
+        print("TSL2561 : Sensor Saturated" + ve)
+        return 1000
+
+
+def create_json(bme_data, tsl_data):
+    import ujson
+    json = {}
+    json.update(bme_data)
+    json["luminous"] = tsl_data
+    return ujson.dumps(json)
+
 
 def create_tick_list(per_tick, max_tick):
-    print("{} {}".format(per_tick, max_tick))
+    # print("{} {}".format(per_tick, max_tick))
     ret = []
     tick = per_tick
     while tick <= max_tick:
-        print("add {}".format(tick))
+        # print("add {}".format(tick))
         ret.append(tick)
         tick = tick + per_tick
 
@@ -85,14 +100,25 @@ if __name__ == '__main__':
     ntpdate.settime()
     display_startup("NTP OK")
 
-    INDICATORS = ["|", "/", "-", "\\", "*"]
+    INDICATORS = ["|", "/", "-", "\\"]
     indicator_idx = 0
 
     # i2c bus addr = AE-BME280 => 0x76(default)
     bme = bme280.BME280(i2c=i2c, mode=bme280.BME280_OSAMPLE_16)
-    time.sleep_ms(1000)
-    data = readdata(bme)
     display_startup("BME280 Init OK")
+
+    # i2c TSL2561
+    tsl = tsl2561.TSL2561(i2c)
+    tsl.active(True)
+    tsl.gain(16)
+    tsl.integration_time(402)
+    display_startup("TSL2561 Init OK")
+
+    # read first data
+    time.sleep_ms(1000)
+    bme_data = readdata_bme(bme)
+    tsl_data = readdata_tsl(tsl)
+    display_startup("First read OK")
 
     # web server
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -116,7 +142,7 @@ if __name__ == '__main__':
             if (conn != None):
                 request = conn.recv(1024)
                 request = str(request)
-                response = ujson.dumps(data)
+                response = create_json(bme_data, tsl_data)
                 conn.send(response)
                 conn.close()
         except OSError as exc:
@@ -129,8 +155,10 @@ if __name__ == '__main__':
 
         tick = tick + 1
         if (tick in data_update_ticks):
-            bme_data = readdata(bme)
-            print(data)
+            bme_data = readdata_bme(bme)
+            print(bme_data)
+            tsl_data = readdata_tsl(tsl)
+            print(tsl_data)
 
         if (tick in screen_update_ticks):
             indicator_idx = indicator_idx + 1
